@@ -16,6 +16,8 @@ export default function VideoUpload() {
     const [error, setError] = useState<string | null>(null);
     const [isUploading, setIsUploading] = useState(false);
     const [metadata, setMetadata] = useState<Partial<VideoMeta> | null>(null);
+    const [isTranscribing, setIsTranscribing] = useState(false);
+    const [transcriptionStatus, setTranscriptionStatus] = useState<string | null>(null);
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const requestRef = useRef<number>(null);
@@ -98,6 +100,7 @@ export default function VideoUpload() {
 
         setIsUploading(true);
         setError(null);
+        setTranscriptionStatus('Uploading video...');
 
         const formData = new FormData();
         formData.append('file', file);
@@ -123,6 +126,8 @@ export default function VideoUpload() {
                 setVideoUrl(`/uploads/videos/${filename}`);
 
                 // Trigger audio extraction
+                setIsTranscribing(true);
+                setTranscriptionStatus('Extracting audio...');
                 try {
                     const extractRes = await fetch('/api/extract-audio', {
                         method: 'POST',
@@ -132,6 +137,7 @@ export default function VideoUpload() {
                     const extractData = await extractRes.json();
 
                     if (extractData.success) {
+                        setTranscriptionStatus('Generating subtitles (AI)...');
                         // Trigger subtitle generation
                         try {
                             const subRes = await fetch('/api/generate-subtitles', {
@@ -146,21 +152,30 @@ export default function VideoUpload() {
 
                             if (subData.subtitles) {
                                 setLines(subData.subtitles);
-                                alert(`Upload complete!\n1. Audio Extracted\n2. Subtitles Generated (${subData.subtitles.length} segments)`);
-                                console.log('Subtitles:', subData);
+                                setTranscriptionStatus('Success!');
+                                setTimeout(() => {
+                                    setTranscriptionStatus(null);
+                                    setIsTranscribing(false);
+                                }, 3000);
                             } else {
-                                alert(`Upload and Audio Extracted, but subtitle generation failed: ${subData.error || 'Unknown error'}`);
+                                setError(`Subtitle generation failed: ${subData.error || 'Unknown error'}`);
+                                setIsTranscribing(false);
+                                setTranscriptionStatus(null);
                             }
                         } catch (subErr) {
-                            console.error('Subtitle trigger error:', subErr);
-                            alert('Upload and Audio Extracted, but failed to start subtitle generation.');
+                            setError('Failed to start subtitle generation.');
+                            setIsTranscribing(false);
+                            setTranscriptionStatus(null);
                         }
                     } else {
-                        alert(`Upload successful, but audio extraction failed: ${extractData.error}`);
+                        setError(`Audio extraction failed: ${extractData.error}`);
+                        setIsTranscribing(false);
+                        setTranscriptionStatus(null);
                     }
                 } catch (err) {
-                    console.error('Extraction trigger error:', err);
-                    alert('Upload successful, but failed to start audio extraction.');
+                    setError('Failed to start audio extraction.');
+                    setIsTranscribing(false);
+                    setTranscriptionStatus(null);
                 }
             } else {
                 setError('Upload failed. Please try again.');
@@ -198,12 +213,12 @@ export default function VideoUpload() {
                 {previewUrl && (
                     <div className="mt-4">
                         <p className="text-sm font-semibold mb-2 text-gray-700">Preview & Edit:</p>
-                        <div className="relative w-full rounded-lg overflow-hidden bg-black aspect-video" style={{ maxHeight: '400px' }}>
+                        <div className="relative w-full rounded-lg overflow-hidden bg-black flex items-center justify-center" style={{ maxHeight: '500px' }}>
                             <video
                                 ref={videoRef}
                                 src={previewUrl}
                                 controls
-                                className="w-full h-full"
+                                className="max-w-full max-h-[500px]"
                                 onPlay={handlePlay}
                                 onPause={handlePause}
                                 onEnded={handlePause}
@@ -243,14 +258,24 @@ export default function VideoUpload() {
 
                 <button
                     onClick={handleUpload}
-                    disabled={!file || isUploading || !!error}
-                    className={`w-full py-3 rounded-lg font-semibold text-white transition-colors ${!file || isUploading || !!error
+                    disabled={!file || isUploading || isTranscribing || !!error}
+                    className={`relative w-full py-3 rounded-lg font-semibold text-white transition-colors flex items-center justify-center gap-2 ${!file || isUploading || isTranscribing || !!error
                         ? 'bg-gray-400 cursor-not-allowed'
                         : 'bg-blue-600 hover:bg-blue-700'
                         }`}
                 >
-                    {isUploading ? 'Uploading...' : 'Upload Video'}
+                    {(isUploading || isTranscribing) && (
+                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    )}
+                    {isUploading ? `Uploading ${progress}%` : isTranscribing ? transcriptionStatus : 'Upload & Generate Subtitles'}
                 </button>
+
+                {transcriptionStatus && !isUploading && (
+                    <div className="flex items-center gap-2 text-sm text-blue-600 font-medium">
+                        <div className="w-4 h-4 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+                        {transcriptionStatus}
+                    </div>
+                )}
             </div>
         </div>
     );

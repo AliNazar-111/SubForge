@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { renderMedia, selectComposition, bundle, getVideoMetadata } from '@remotion/renderer';
+import { renderMedia, selectComposition, getVideoMetadata } from '@remotion/renderer';
 import path from 'path';
 import fs from 'fs';
-
+import { bundle } from '@remotion/bundler';
 export async function POST(req: NextRequest) {
     try {
         const { projectId, subtitleLines, videoUrl: clientVideoUrl, width = 1920, height = 1080 } = await req.json();

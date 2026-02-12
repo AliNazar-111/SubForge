@@ -34,6 +34,7 @@ export default function WordStylePanel() {
 
     const [isExporting, setIsExporting] = React.useState(false);
     const [exportError, setExportError] = React.useState<string | null>(null);
+    const [exportStatus, setExportStatus] = React.useState<string | null>(null);
 
     const handleExport = async () => {
         if (!projectId || lines.length === 0 || !videoUrl) {
@@ -43,8 +44,10 @@ export default function WordStylePanel() {
 
         setIsExporting(true);
         setExportError(null);
+        setExportStatus('Preparing render engine...');
 
         try {
+            setExportStatus('Bundling & Rendering... (may take a minute)');
             const response = await fetch('/api/render-video', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -57,14 +60,21 @@ export default function WordStylePanel() {
 
             const data = await response.json();
             if (data.success) {
+                setExportStatus('Render complete! Downloading...');
                 window.open(data.downloadUrl, '_blank');
+                setTimeout(() => {
+                    setIsExporting(false);
+                    setExportStatus(null);
+                }, 3000);
             } else {
                 setExportError(data.error || 'Export failed');
+                setIsExporting(false);
+                setExportStatus(null);
             }
         } catch (err: any) {
-            setExportError(err.message || 'Export failed');
-        } finally {
+            setExportError(err.message || 'An unexpected error occurred during export');
             setIsExporting(false);
+            setExportStatus(null);
         }
     };
 
@@ -87,9 +97,14 @@ export default function WordStylePanel() {
                         <button
                             onClick={handleExport}
                             disabled={isExporting}
-                            className="py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white rounded-xl font-semibold transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+                            className="py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white rounded-xl font-semibold transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 px-2 overflow-hidden"
                         >
-                            {isExporting ? 'Exporting...' : 'Export'}
+                            {isExporting && (
+                                <div className="min-w-[14px] h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            )}
+                            <span className="truncate text-xs">
+                                {isExporting ? (exportStatus || 'Exporting...') : 'Export Video'}
+                            </span>
                         </button>
                     </div>
 

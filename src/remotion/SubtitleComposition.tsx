@@ -39,24 +39,33 @@ export const SubtitleComposition: React.FC<SubtitleCompositionProps> = ({
                 const startFrame = Math.round(line.startTime * fps);
                 const durationInFrames = Math.max(1, Math.round((line.endTime - line.startTime) * fps));
 
+                // Detect if line contains RTL characters
+                const rtlRegex = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+                const isRTL = line.words.some(w => rtlRegex.test(w.text));
+
                 return (
                     <Sequence
                         key={line.id}
                         from={startFrame}
                         durationInFrames={durationInFrames}
                     >
-                        <div style={{
-                            position: 'absolute',
-                            bottom: '15%',
-                            width: '100%',
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            gap: '0.5em',
-                            flexWrap: 'wrap',
-                            padding: '0 5%',
-                            textAlign: 'center'
-                        }}>
+                        <div
+                            dir="auto"
+                            style={{
+                                position: 'absolute',
+                                bottom: '10%',
+                                width: '100%',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                alignContent: 'center',
+                                gap: '0.4em',
+                                flexWrap: 'wrap',
+                                padding: '0 10%',
+                                textAlign: 'center',
+                                direction: isRTL ? 'rtl' : 'ltr'
+                            }}
+                        >
                             {line.words.map((word, i) => (
                                 <span
                                     key={i}
@@ -69,7 +78,10 @@ export const SubtitleComposition: React.FC<SubtitleCompositionProps> = ({
                                         textDecoration: word.underline ? 'underline' : 'none',
                                         opacity: word.opacity,
                                         letterSpacing: `${word.letterSpacing}px`,
-                                        textShadow: '0px 2px 4px rgba(0,0,0,0.8)'
+                                        textShadow: '0px 2px 4px rgba(0,0,0,0.8), 0px 0px 10px rgba(0,0,0,0.5)',
+                                        whiteSpace: 'pre-wrap',
+                                        wordBreak: 'break-word',
+                                        overflowWrap: 'anywhere'
                                     }}
                                 >
                                     {word.text}

@@ -1,11 +1,11 @@
 import React from 'react';
 import { Composition, registerRoot } from 'remotion';
-import { SubtitleComposition } from './SubtitleComposition';
+import { SubtitleComposition, SubtitleCompositionProps } from './SubtitleComposition';
 
 export const RemotionRoot: React.FC = () => {
     return (
         <>
-            <Composition
+            <Composition<SubtitleCompositionProps, any>
                 id="SubtitleRender"
                 component={SubtitleComposition}
                 durationInFrames={300} // Default, will be overridden
