@@ -1,20 +1,27 @@
 import VideoUpload from '@/components/VideoUpload';
+import WordStylePanel from '@/components/editor/WordStylePanel';
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto space-y-8">
-        <div className="text-center">
-          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight sm:text-5xl">
+    <main className="min-h-screen bg-slate-950 text-white selection:bg-blue-500/30">
+      <div className="max-w-6xl mx-auto px-6 py-12">
+        <header className="mb-12 text-center">
+          <h1 className="text-5xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent mb-4">
             SubForge
           </h1>
-          <p className="mt-3 text-xl text-gray-500">
-            Professional Video Editing Suite
+          <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+            Professional AI-powered subtitle editor. Upload your video and let Whisper handle the rest.
           </p>
-        </div>
+        </header>
 
-        <div className="flex justify-center">
-          <VideoUpload />
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
+          <div className="flex-1 w-full space-y-8">
+            <VideoUpload />
+          </div>
+
+          <aside className="w-full lg:w-80">
+            <WordStylePanel />
+          </aside>
         </div>
       </div>
     </main>

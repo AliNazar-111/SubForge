@@ -1,12 +1,11 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { Stage, Layer, Group, Text } from 'react-konva';
-import { SubtitleLine } from '@/types/SubtitleLine';
+import { Stage, Layer, Group, Text, Rect } from 'react-konva';
+import { useEditorStore } from '@/store/useEditorStore';
 
 interface SubtitleCanvasProps {
     currentTime: number;
-    lines: SubtitleLine[];
     stageWidth: number;
     stageHeight: number;
     videoWidth: number;
@@ -15,12 +14,12 @@ interface SubtitleCanvasProps {
 
 export default function SubtitleCanvas({
     currentTime,
-    lines,
     stageWidth,
     stageHeight,
     videoWidth,
     videoHeight,
 }: SubtitleCanvasProps) {
+    const { lines, selectedWord, selectWord } = useEditorStore();
     // Determine scaling factor to map video coordinates to canvas coordinates
     const scale = stageWidth / videoWidth;
 
@@ -39,33 +38,55 @@ export default function SubtitleCanvas({
         if (!activeLine) return null;
 
         let currentX = 0;
-        const spacing = 4 * scale; // Minimal gap between words
-
-        // Pre-calculate positions to center the group
-        // Note: Real centering requires measuring text width, which Konva does after render
-        // or using a hidden context. For now, we'll estimate and rely on Group centering.
+        const spacing = 8 * scale;
 
         return activeLine.words.map((word, index) => {
-            const wordElement = (
-                <Text
-                    key={`${activeLine.id}-word-${index}`}
-                    text={word.text}
-                    x={currentX}
-                    fill={word.color}
-                    fontFamily={word.fontFamily}
-                    fontSize={word.fontSize * scale}
-                    fontStyle={`${word.bold ? 'bold' : ''} ${word.italic ? 'italic' : ''}`.trim()}
-                    opacity={word.opacity}
-                    textDecoration={word.underline ? 'underline' : ''}
-                    letterSpacing={word.letterSpacing * scale}
-                />
+            const isSelected = selectedWord?.lineId === activeLine.id && selectedWord?.wordIndex === index;
+            const wordFontSize = word.fontSize * scale;
+
+            // Approximate width for layout
+            const wordWidth = (word.text.length * (wordFontSize * 0.6)) + (word.letterSpacing * scale);
+
+            const element = (
+                <Group key={`${activeLine.id}-word-grp-${index}`} x={currentX}>
+                    {/* Selection Highlight */}
+                    {isSelected && (
+                        <Rect
+                            width={wordWidth}
+                            height={wordFontSize * 1.2}
+                            y={-wordFontSize * 0.1}
+                            stroke="#3b82f6"
+                            strokeWidth={2}
+                            dash={[4, 2]}
+                            cornerRadius={4}
+                        />
+                    )}
+                    <Text
+                        text={word.text}
+                        fill={word.color}
+                        fontFamily={word.fontFamily}
+                        fontSize={wordFontSize}
+                        fontStyle={`${word.bold ? 'bold' : ''} ${word.italic ? 'italic' : ''}`.trim()}
+                        opacity={word.opacity}
+                        textDecoration={word.underline ? 'underline' : ''}
+                        letterSpacing={word.letterSpacing * scale}
+                        onClick={() => selectWord(activeLine.id, index)}
+                        onMouseEnter={(e) => {
+                            const container = e.target.getStage()?.container();
+                            if (container) container.style.cursor = 'pointer';
+                        }}
+                        onMouseLeave={(e) => {
+                            const container = e.target.getStage()?.container();
+                            if (container) container.style.cursor = 'default';
+                        }}
+                    />
+                </Group>
             );
-            // Rough estimation for next word position (real app would use word.width if calculated)
-            // Simplified for initial implementation.
-            currentX += (word.text.length * (word.fontSize * 0.6) + 10) * scale;
-            return wordElement;
+
+            currentX += wordWidth + spacing;
+            return element;
         });
-    }, [activeLine, scale]);
+    }, [activeLine, scale, selectedWord, selectWord]);
 
     return (
         <Stage width={stageWidth} height={stageHeight} className="absolute inset-0 z-10 pointer-events-none">

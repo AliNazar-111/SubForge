@@ -2,11 +2,15 @@
 
 import React, { useState, useRef } from 'react';
 import { VideoMeta } from '@/types/video';
+import { useEditorStore } from '@/store/useEditorStore';
+import SubtitleCanvas from './editor/SubtitleCanvas';
 
 const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 const ALLOWED_TYPES = ['video/mp4', 'video/quicktime', 'video/webm'];
 
 export default function VideoUpload() {
+    const { setLines } = useEditorStore();
+    const [currentTime, setCurrentTime] = useState(0);
     const [file, setFile] = useState<File | null>(null);
     const [progress, setProgress] = useState(0);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -103,6 +107,7 @@ export default function VideoUpload() {
                             const subData = await subRes.json();
 
                             if (subData.subtitles) {
+                                setLines(subData.subtitles);
                                 alert(`Upload complete!\n1. Audio Extracted\n2. Subtitles Generated (${subData.subtitles.length} segments)`);
                                 console.log('Subtitles:', subData);
                             } else {
@@ -154,14 +159,25 @@ export default function VideoUpload() {
 
                 {previewUrl && (
                     <div className="mt-4">
-                        <p className="text-sm font-semibold mb-2 text-gray-700">Preview:</p>
-                        <video
-                            ref={videoRef}
-                            src={previewUrl}
-                            controls
-                            className="w-full rounded-lg bg-black"
-                            style={{ maxHeight: '300px' }}
-                        />
+                        <p className="text-sm font-semibold mb-2 text-gray-700">Preview & Edit:</p>
+                        <div className="relative w-full rounded-lg overflow-hidden bg-black aspect-video" style={{ maxHeight: '400px' }}>
+                            <video
+                                ref={videoRef}
+                                src={previewUrl}
+                                controls
+                                className="w-full h-full"
+                                onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+                            />
+                            {metadata && metadata.width && metadata.height && (
+                                <SubtitleCanvas
+                                    currentTime={currentTime}
+                                    stageWidth={videoRef.current?.clientWidth || 0}
+                                    stageHeight={videoRef.current?.clientHeight || 0}
+                                    videoWidth={metadata.width}
+                                    videoHeight={metadata.height}
+                                />
+                            )}
+                        </div>
                     </div>
                 )}
 
