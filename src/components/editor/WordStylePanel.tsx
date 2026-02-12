@@ -13,9 +13,45 @@ const FONT_FAMILIES = [
 ];
 
 export default function WordStylePanel() {
-    const { lines, selectedWord, updateWordStyle, clearSelection } = useEditorStore();
+    const {
+        lines,
+        selectedWord,
+        updateWordStyle,
+        clearSelection,
+        projectId,
+        projectName,
+        saveCurrentProject,
+        initProject
+    } = useEditorStore();
 
-    if (!selectedWord) return null;
+    // Initialize project if none exists
+    React.useEffect(() => {
+        if (!projectId) {
+            initProject('New Subtitle Project');
+        }
+    }, [projectId, initProject]);
+
+    if (!selectedWord) {
+        return (
+            <div className="fixed right-4 top-1/2 -translate-y-1/2 w-80 bg-slate-900/90 backdrop-blur-md p-6 rounded-2xl border border-white/10 shadow-2xl z-50 flex flex-col gap-6">
+                <div className="space-y-4">
+                    <div className="flex flex-col gap-1">
+                        <label className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Project</label>
+                        <h3 className="text-white font-medium truncate">{projectName}</h3>
+                    </div>
+                    <button
+                        onClick={saveCurrentProject}
+                        className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+                    >
+                        Save Project
+                    </button>
+                    <p className="text-[10px] text-slate-500 text-center italic">
+                        Select a word on the canvas to edit its style
+                    </p>
+                </div>
+            </div>
+        );
+    }
 
     const activeLine = lines.find((l) => l.id === selectedWord.lineId);
     const word = activeLine?.words[selectedWord.wordIndex];
@@ -25,7 +61,10 @@ export default function WordStylePanel() {
     return (
         <div className="fixed right-4 top-1/2 -translate-y-1/2 w-80 bg-slate-900/90 backdrop-blur-md p-6 rounded-2xl border border-white/10 shadow-2xl z-50 flex flex-col gap-6 animate-in slide-in-from-right duration-300">
             <div className="flex justify-between items-center border-b border-white/5 pb-4">
-                <h3 className="text-lg font-semibold text-white">Edit Word</h3>
+                <div className="flex flex-col">
+                    <h3 className="text-lg font-semibold text-white">Edit Word</h3>
+                    <span className="text-[10px] text-slate-500 uppercase tracking-widest leading-none">{projectName}</span>
+                </div>
                 <button
                     onClick={clearSelection}
                     className="text-slate-400 hover:text-white transition-colors"
@@ -33,9 +72,17 @@ export default function WordStylePanel() {
                     ✕
                 </button>
             </div>
-
+            {/* ... style controls ... */}
             <div className="space-y-4">
+                {/* Save Button also here for convenience */}
+                <button
+                    onClick={saveCurrentProject}
+                    className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold border border-white/5 transition-all mb-4"
+                >
+                    Save Changes
+                </button>
                 {/* Font Family */}
+                {/* ... existing style controls ... */}
                 <div className="flex flex-col gap-2">
                     <label className="text-xs font-medium text-slate-400 uppercase tracking-wider">Font Family</label>
                     <select
