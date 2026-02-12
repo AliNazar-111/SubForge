@@ -21,7 +21,8 @@ export default function WordStylePanel() {
         projectId,
         projectName,
         saveCurrentProject,
-        initProject
+        initProject,
+        videoUrl
     } = useEditorStore();
 
     // Initialize project if none exists
@@ -31,6 +32,42 @@ export default function WordStylePanel() {
         }
     }, [projectId, initProject]);
 
+    const [isExporting, setIsExporting] = React.useState(false);
+    const [exportError, setExportError] = React.useState<string | null>(null);
+
+    const handleExport = async () => {
+        if (!projectId || lines.length === 0 || !videoUrl) {
+            setExportError(!videoUrl ? 'Please upload a video first' : 'No subtitles to export');
+            return;
+        }
+
+        setIsExporting(true);
+        setExportError(null);
+
+        try {
+            const response = await fetch('/api/render-video', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    projectId,
+                    subtitleLines: lines,
+                    videoUrl: videoUrl
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                window.open(data.downloadUrl, '_blank');
+            } else {
+                setExportError(data.error || 'Export failed');
+            }
+        } catch (err: any) {
+            setExportError(err.message || 'Export failed');
+        } finally {
+            setIsExporting(false);
+        }
+    };
+
     if (!selectedWord) {
         return (
             <div className="fixed right-4 top-1/2 -translate-y-1/2 w-80 bg-slate-900/90 backdrop-blur-md p-6 rounded-2xl border border-white/10 shadow-2xl z-50 flex flex-col gap-6">
@@ -39,12 +76,25 @@ export default function WordStylePanel() {
                         <label className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Project</label>
                         <h3 className="text-white font-medium truncate">{projectName}</h3>
                     </div>
-                    <button
-                        onClick={saveCurrentProject}
-                        className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
-                    >
-                        Save Project
-                    </button>
+
+                    <div className="grid grid-cols-2 gap-2">
+                        <button
+                            onClick={saveCurrentProject}
+                            className="py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-semibold transition-all border border-white/5 shadow-lg"
+                        >
+                            Save
+                        </button>
+                        <button
+                            onClick={handleExport}
+                            disabled={isExporting}
+                            className="py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white rounded-xl font-semibold transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+                        >
+                            {isExporting ? 'Exporting...' : 'Export'}
+                        </button>
+                    </div>
+
+                    {exportError && <p className="text-red-400 text-[10px] text-center">{exportError}</p>}
+
                     <p className="text-[10px] text-slate-500 text-center italic">
                         Select a word on the canvas to edit its style
                     </p>

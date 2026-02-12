@@ -9,8 +9,10 @@ interface EditorState {
     duration: number;
     projectId: string | null;
     projectName: string;
+    videoUrl: string | null;
 
     setLines: (lines: SubtitleLine[]) => void;
+    setVideoUrl: (url: string) => void;
     selectWord: (lineId: string, wordIndex: number) => void;
     updateWordStyle: (style: Partial<SubtitleWord>) => void;
     clearSelection: () => void;
@@ -32,8 +34,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     duration: 0,
     projectId: null,
     projectName: 'Untitled Project',
+    videoUrl: null,
 
     setLines: (lines: SubtitleLine[]) => set({ lines }),
+    setVideoUrl: (videoUrl: string) => set({ videoUrl }),
     setCurrentTime: (currentTime: number) => set({ currentTime }),
     setDuration: (duration: number) => set({ duration }),
 

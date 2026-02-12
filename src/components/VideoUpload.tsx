@@ -9,7 +9,7 @@ const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 const ALLOWED_TYPES = ['video/mp4', 'video/quicktime', 'video/webm'];
 
 export default function VideoUpload() {
-    const { setLines, setCurrentTime, setDuration, currentTime: storeTime } = useEditorStore();
+    const { setLines, setCurrentTime, setDuration, setVideoUrl, currentTime: storeTime } = useEditorStore();
     const [file, setFile] = useState<File | null>(null);
     const [progress, setProgress] = useState(0);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -75,6 +75,7 @@ export default function VideoUpload() {
         setFile(selectedFile);
         const url = URL.createObjectURL(selectedFile);
         setPreviewUrl(url);
+        setVideoUrl(url);
 
         // Metadata extraction
         const video = document.createElement('video');
@@ -117,6 +118,9 @@ export default function VideoUpload() {
             if (xhr.status === 200) {
                 const response = JSON.parse(xhr.responseText);
                 const { videoId, filename } = response.metadata;
+
+                // Update store with the server-side accessible URL
+                setVideoUrl(`/uploads/videos/${filename}`);
 
                 // Trigger audio extraction
                 try {
