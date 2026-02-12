@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { VideoMeta } from '@/types/video';
 import { useEditorStore } from '@/store/useEditorStore';
 import SubtitleCanvas from './editor/SubtitleCanvas';
@@ -9,8 +9,7 @@ const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 const ALLOWED_TYPES = ['video/mp4', 'video/quicktime', 'video/webm'];
 
 export default function VideoUpload() {
-    const { setLines } = useEditorStore();
-    const [currentTime, setCurrentTime] = useState(0);
+    const { setLines, setCurrentTime, setDuration, currentTime: storeTime } = useEditorStore();
     const [file, setFile] = useState<File | null>(null);
     const [progress, setProgress] = useState(0);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -19,6 +18,41 @@ export default function VideoUpload() {
     const [metadata, setMetadata] = useState<Partial<VideoMeta> | null>(null);
 
     const videoRef = useRef<HTMLVideoElement>(null);
+    const requestRef = useRef<number>(null);
+
+    const updatePlayhead = () => {
+        if (videoRef.current) {
+            setCurrentTime(videoRef.current.currentTime);
+        }
+        requestRef.current = requestAnimationFrame(updatePlayhead);
+    };
+
+    const handlePlay = () => {
+        requestRef.current = requestAnimationFrame(updatePlayhead);
+    };
+
+    const handlePause = () => {
+        if (requestRef.current) {
+            cancelAnimationFrame(requestRef.current);
+        }
+    };
+
+    // Sync playhead from store to video element (for seeking via timeline)
+    useEffect(() => {
+        if (videoRef.current && Math.abs(videoRef.current.currentTime - storeTime) > 0.15) {
+            videoRef.current.currentTime = storeTime;
+        }
+    }, [storeTime]);
+
+    const handleLoadedMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+        setDuration(e.currentTarget.duration);
+    };
+
+    useEffect(() => {
+        return () => {
+            if (requestRef.current) cancelAnimationFrame(requestRef.current);
+        };
+    }, []);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
@@ -166,11 +200,14 @@ export default function VideoUpload() {
                                 src={previewUrl}
                                 controls
                                 className="w-full h-full"
-                                onTimeUpdate={(e) => setCurrentTime(e.currentTarget.currentTime)}
+                                onPlay={handlePlay}
+                                onPause={handlePause}
+                                onEnded={handlePause}
+                                onLoadedMetadata={handleLoadedMetadata}
                             />
                             {metadata && metadata.width && metadata.height && (
                                 <SubtitleCanvas
-                                    currentTime={currentTime}
+                                    currentTime={storeTime}
                                     stageWidth={videoRef.current?.clientWidth || 0}
                                     stageHeight={videoRef.current?.clientHeight || 0}
                                     videoWidth={metadata.width}

@@ -5,18 +5,28 @@ import { SubtitleWord } from '@/types/SubtitleWord';
 interface EditorState {
     lines: SubtitleLine[];
     selectedWord: { lineId: string; wordIndex: number } | null;
+    currentTime: number;
+    duration: number;
 
     setLines: (lines: SubtitleLine[]) => void;
     selectWord: (lineId: string, wordIndex: number) => void;
     updateWordStyle: (style: Partial<SubtitleWord>) => void;
     clearSelection: () => void;
+
+    setCurrentTime: (time: number) => void;
+    setDuration: (duration: number) => void;
+    updateLineTiming: (lineId: string, startTime: number, endTime: number) => void;
 }
 
 export const useEditorStore = create<EditorState>((set) => ({
     lines: [],
     selectedWord: null,
+    currentTime: 0,
+    duration: 0,
 
     setLines: (lines) => set({ lines }),
+    setCurrentTime: (currentTime) => set({ currentTime }),
+    setDuration: (duration) => set({ duration }),
 
     selectWord: (lineId, wordIndex) => set({ selectedWord: { lineId, wordIndex } }),
 
@@ -34,6 +44,12 @@ export const useEditorStore = create<EditorState>((set) => ({
 
         return { lines: newLines };
     }),
+
+    updateLineTiming: (lineId, startTime, endTime) => set((state) => ({
+        lines: state.lines.map((line) =>
+            line.id === lineId ? { ...line, startTime, endTime } : line
+        )
+    })),
 
     clearSelection: () => set({ selectedWord: null }),
 }));

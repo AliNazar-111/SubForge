@@ -23,17 +23,30 @@ export default function SubtitleCanvas({
     // Determine scaling factor to map video coordinates to canvas coordinates
     const scale = stageWidth / videoWidth;
 
-    // Find the current active line
+    // Find the current active line using Binary Search for performance with long videos
     const activeLine = useMemo(() => {
-        return lines.find(
-            (line) => currentTime >= line.startTime && currentTime <= line.endTime
-        );
+        let low = 0;
+        let high = lines.length - 1;
+
+        while (low <= high) {
+            const mid = Math.floor((low + high) / 2);
+            const line = lines[mid];
+
+            if (currentTime >= line.startTime && currentTime <= line.endTime) {
+                return line;
+            } else if (currentTime < line.startTime) {
+                high = mid - 1;
+            } else {
+                low = mid + 1;
+            }
+        }
+        return null;
     }, [lines, currentTime]);
 
-    // Track position for draggability (can be synced back to a state/DB later)
+    // Track position for draggability
     const [position, setPosition] = useState({ x: stageWidth / 2, y: stageHeight * 0.8 });
 
-    // Calculate word positions within the line for horizontal centering
+    // Memoize word rendering to only update when the line changes
     const renderedWords = useMemo(() => {
         if (!activeLine) return null;
 
@@ -43,8 +56,6 @@ export default function SubtitleCanvas({
         return activeLine.words.map((word, index) => {
             const isSelected = selectedWord?.lineId === activeLine.id && selectedWord?.wordIndex === index;
             const wordFontSize = word.fontSize * scale;
-
-            // Approximate width for layout
             const wordWidth = (word.text.length * (wordFontSize * 0.6)) + (word.letterSpacing * scale);
 
             const element = (
@@ -86,7 +97,7 @@ export default function SubtitleCanvas({
             currentX += wordWidth + spacing;
             return element;
         });
-    }, [activeLine, scale, selectedWord, selectWord]);
+    }, [activeLine?.id, activeLine?.words, scale, selectedWord, selectWord]);
 
     return (
         <Stage width={stageWidth} height={stageHeight} className="absolute inset-0 z-10 pointer-events-none">
